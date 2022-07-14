@@ -79,7 +79,7 @@ void vUpdateSch(void)  __interrupt (1)  __using (1)
                 aTask[u8Index].boRunMe += 1;
                 if(aTask[u8Index].u16Period != 0)
                 {
-                    aTask[u8Index].u16Delay = aTask[u8Index].u16Period;
+                    aTask[u8Index].u16Delay = aTask[u8Index].u16Period-1;
                 }
             }
             else

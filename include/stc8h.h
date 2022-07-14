@@ -1031,6 +1031,7 @@ __sfr __at (0xff)         RSTCFG      ;
 #define	EAXSFR()		P_SW2 |= 0x80		/* MOVX A,@DPTR/MOVX @DPTR,A指令的操作对象为扩展SFR(XSFR) */
 #define	EAXRAM()		P_SW2 &= ~0x80		/* MOVX A,@DPTR/MOVX @DPTR,A指令的操作对象为扩展RAM(XRAM) */
 
+#define _nop_()  __asm nop __endasm
 
 /////////////////////////////////////////////////
 #define NOP1()  _nop_()

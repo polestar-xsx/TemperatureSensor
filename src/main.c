@@ -1,15 +1,7 @@
 #include<lint.h>
 #include"stc8h.h"
 #include"sch.h"
-
-void delay()
-{
-    int i, j;
-
-    for (i=0; i<1000; i++)
-    for (j=0; j<500; j++); 
-    
-}
+#include"18b20.h"
 
 #define LED_R P20
 #define LED_G P21
@@ -23,6 +15,7 @@ void delay()
 
 const unsigned char u8DigtalMap[10] = {0x3f,0x06,0x5b,0x4f,0x66,0x6d,0x7d,0x07,0x7f,0x6f};
 unsigned char u8DisBuffer[5]={0,0,0,0,0x80};
+extern unsigned char au8RecvBuffer[9];
 
 void vDisplay(void)
 {
@@ -47,6 +40,15 @@ void vUpdateCnt(void)
     u8DisBuffer[2] = (u16Count / 100) % 10;
     u8DisBuffer[3] = (u16Count / 1000) % 10;
     u8DisBuffer[4] = u8DisBuffer[4]^0x80;
+}
+
+void vUpdateTemp(void) 
+{
+    unsigned char temp = au8RecvBuffer[1]<<4 | au8RecvBuffer[0]>>4;
+    u8DisBuffer[0] = temp % 10;
+    u8DisBuffer[1] = (temp / 10) % 10;
+    u8DisBuffer[2] = (temp / 100) % 10;
+    u8DisBuffer[3] = (temp / 1000) % 10;
 }
 
 void vIOInit(void)
@@ -76,8 +78,12 @@ void vT0Init(unsigned int u16TaskPeriod)
 void main()
 {
     vIOInit();
+    vSetReadTempSeq();
     boAddTask(vDisplay,1,3);
-    boAddTask(vUpdateCnt,1000,0);
+    //boAddTask(vUpdateCnt,1000,0);
+    boAddTask(vStartCmdSeq,3000,8);
+    boAddTask(vUpdateTemp,3000,15);
+    boAddTask(v18b20ServiceTask,1,6);
     vT0Init(SCH_TICK_PERIOD);
     vStartSch();
     while (1)

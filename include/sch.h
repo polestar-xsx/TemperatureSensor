@@ -2,8 +2,8 @@
 #define __SCH_H__
 
 #define MAX_TASK_NUM    5
-#define SCH_TICK_PERIOD  1 /*Tick period time of scheduler,ms*/
-#define SYS_CLK          (12000000)/*System clock*/
+#define SCH_TICK_PERIOD  2 /*Tick period time of scheduler,ms*/
+#define SYS_CLK          (24000000)/*System clock*/
 
 typedef void TaskHandle(void);
 
