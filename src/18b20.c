@@ -116,6 +116,8 @@ void v18b20ServiceTask(void)
                     v18b20SendCmd(astCmdSeq[u8CmdSeqIndex].au8CmdData,astCmdSeq[u8CmdSeqIndex].u8CmdLength);
                     break;
                 case enRecvData:
+                    au8RecvBuffer[0] = 0;
+                    au8RecvBuffer[1] = 0;
                     v18b20ReadData(au8RecvBuffer,2);
                     DQ_PIN = 0;
                     break;
