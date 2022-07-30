@@ -2,6 +2,8 @@
 #include"stc8h.h"
 #include"sch.h"
 #include"18b20.h"
+#include"iic.h"
+#include"clk_sd3078.h"
 
 #define LED_R P20
 #define LED_G P21
@@ -14,9 +16,9 @@
 
 
 const unsigned char u8DigtalMap[10] = {0x3f,0x06,0x5b,0x4f,0x66,0x6d,0x7d,0x07,0x7f,0x6f};
-unsigned char u8DisBuffer[5]={0,0,0,0,0x80};
+unsigned char __xdata u8DisBuffer[5]={0,0,0,0,0x80};
 extern unsigned char au8RecvBuffer[9];
-
+tstClock __xdata stClk = {0,};
 void vDisplay(void)
 {
     static unsigned char u8DigIndex = 0;
@@ -51,6 +53,26 @@ void vUpdateTemp(void)
     u8DisBuffer[3] = (temp / 1000) % 10;
 }
 
+void vUpdateDis(void) 
+{
+    u8DisBuffer[0] = stClk.u8Min & 0x0f;
+    u8DisBuffer[1] = stClk.u8Min >> 4;
+    u8DisBuffer[2] = stClk.u8Hour & 0x0f;
+    u8DisBuffer[3] = (stClk.u8Hour >> 4) & 0x07;
+    u8DisBuffer[4] = u8DisBuffer[4]^0x80;
+}
+
+void vInitClk(void)
+{
+    tstClock stClk = {0x50,0x19,0x96,0x05,0x30,0x07,0x22};
+    vClk_SetClk(&stClk,0);
+}
+
+void vUpdateClk(void)
+{
+    vClk_ReadClk(&stClk,vUpdateDis);
+}
+
 void vIOInit(void)
 {
     P0M0 = 0x00;
@@ -82,9 +104,11 @@ void main()
     boAddTask(vDisplay,1,3);
     //boAddTask(vUpdateCnt,1000,0);
     boAddTask(vStartCmdSeq,3000,8);
-    boAddTask(vUpdateTemp,3000,15);
+    boAddTask(vUpdateClk,1000,15);
     boAddTask(v18b20ServiceTask,1,6);
     vT0Init(SCH_TICK_PERIOD);
+    vIIC_Init();
+    //vInitClk();
     vStartSch();
     while (1)
     {
