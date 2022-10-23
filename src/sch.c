@@ -2,7 +2,7 @@
 #include "sch.h"
 #include "stc8h.h"
 
-tTask aTask[MAX_TASK_NUM]={{0, 0, 0, 0}};
+tTask __xdata aTask[MAX_TASK_NUM]={{0, 0, 0, 0}};
 
 unsigned char boAddTask(TaskHandle *pTaskHandle,const unsigned int u16Period,const unsigned int u16Delay)
 {

@@ -1,5 +1,6 @@
 #ifndef __CLK_SD3078_H__
 #define __CLK_SD3078_H__
+#include"iic.h"
 
 #define Address_Read   0x65
 #define Address_Write  0x64
@@ -27,5 +28,9 @@ typedef struct
 void vClk_ReadClk(tstClock * pstClk,vIIC_OpDoneCallback* pCallback);
 
 void vClk_SetClk(tstClock * pstClk,vIIC_OpDoneCallback* pCallback);
+
+unsigned char boGetClkValid(void);
+
+void vUpdateClk(void);
 
 #endif /* __CLK_SD3078_H__ */

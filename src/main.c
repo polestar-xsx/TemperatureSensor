@@ -4,74 +4,10 @@
 #include"18b20.h"
 #include"iic.h"
 #include"clk_sd3078.h"
-
-#define LED_R P20
-#define LED_G P21
-#define LED_B P22
-#define DE1   P00
-#define DE2   P01
-#define DE3   P02
-#define DE4   P03
-#define DIG   P1
+#include"key.h"
+#include"display.h"
 
 
-const unsigned char u8DigtalMap[10] = {0x3f,0x06,0x5b,0x4f,0x66,0x6d,0x7d,0x07,0x7f,0x6f};
-unsigned char __xdata u8DisBuffer[5]={0,0,0,0,0x80};
-extern unsigned char au8RecvBuffer[9];
-tstClock __xdata stClk = {0,};
-void vDisplay(void)
-{
-    static unsigned char u8DigIndex = 0;
-    switch(u8DigIndex)
-    {
-        case 0:DE1 = 0;DE4 = 1;DIG = ~u8DigtalMap[u8DisBuffer[0]];break;
-        case 1:DE4 = 0;DE3 = 1;DIG = ~u8DigtalMap[u8DisBuffer[1]];break;
-        case 2:DE3 = 0;DE2 = 1;DIG = ~(u8DigtalMap[u8DisBuffer[2]]|u8DisBuffer[4]);break;
-        case 3:DE2 = 0;DE1 = 1;DIG = ~u8DigtalMap[u8DisBuffer[3]];break;
-        default:u8DigIndex = 0;break;
-    }
-    if(++u8DigIndex >= 4) u8DigIndex = 0;
-}
-
-void vUpdateCnt(void)
-{
-    static unsigned int u16Count = 0;
-    if(u16Count++ >= 10000) u16Count = 0;
-    u8DisBuffer[0] = u16Count % 10;
-    u8DisBuffer[1] = (u16Count / 10) % 10;
-    u8DisBuffer[2] = (u16Count / 100) % 10;
-    u8DisBuffer[3] = (u16Count / 1000) % 10;
-    u8DisBuffer[4] = u8DisBuffer[4]^0x80;
-}
-
-void vUpdateTemp(void) 
-{
-    unsigned char temp = au8RecvBuffer[1]<<4 | au8RecvBuffer[0]>>4;
-    u8DisBuffer[0] = temp % 10;
-    u8DisBuffer[1] = (temp / 10) % 10;
-    u8DisBuffer[2] = (temp / 100) % 10;
-    u8DisBuffer[3] = (temp / 1000) % 10;
-}
-
-void vUpdateDis(void) 
-{
-    u8DisBuffer[0] = stClk.u8Min & 0x0f;
-    u8DisBuffer[1] = stClk.u8Min >> 4;
-    u8DisBuffer[2] = stClk.u8Hour & 0x0f;
-    u8DisBuffer[3] = (stClk.u8Hour >> 4) & 0x07;
-    u8DisBuffer[4] = u8DisBuffer[4]^0x80;
-}
-
-void vInitClk(void)
-{
-    tstClock stClk = {0x50,0x19,0x96,0x05,0x30,0x07,0x22};
-    vClk_SetClk(&stClk,0);
-}
-
-void vUpdateClk(void)
-{
-    vClk_ReadClk(&stClk,vUpdateDis);
-}
 
 void vIOInit(void)
 {
@@ -101,20 +37,23 @@ void main()
 {
     vIOInit();
     vSetReadTempSeq();
-    boAddTask(vDisplay,1,3);
-    //boAddTask(vUpdateCnt,1000,0);
-    boAddTask(vStartCmdSeq,3000,8);
+    KeyInit();
+    vDisplayInit();
+    boAddTask(vDisplayFresh,DIS_FRESH_TASK_PERIOD,3);
+    //boAddTask(vGetKey,20,5);
+    boAddTask(vReadTemp,3000,8);
     boAddTask(vUpdateClk,1000,15);
     boAddTask(v18b20ServiceTask,1,6);
+    boAddTask(vKeyTask,KeyTaskPeriod,20);
+    boAddTask(vDisplayMainTask,DIS_MAIN_TASK_PERIOD,30);
+    
     vT0Init(SCH_TICK_PERIOD);
     vIIC_Init();
     //vInitClk();
     vStartSch();
     while (1)
     {
-        //LED_R = 1;
         vDispatchTask();
-        //LED_R = 0;
     }
 }
 

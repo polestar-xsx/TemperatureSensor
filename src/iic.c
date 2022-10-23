@@ -1,4 +1,5 @@
 #include "stc8h.h"
+#include "sch.h"
 #include "iic.h"
 
 typedef enum
@@ -158,7 +159,7 @@ void vIIC_ISR_Handler(void) __interrupt (I2C_VECTOR)  __using (1)
                 stIIC_Data.u8BufferIndex = 0;
                 stIIC_Data.u8Length = 0;
                 stIIC_Data.pu8Buffer = 0;
-                if(0 != stIIC_Data.pCallback)
+                if(NULL != stIIC_Data.pCallback)
                 {
                     (*stIIC_Data.pCallback)();
                 }

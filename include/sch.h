@@ -1,7 +1,13 @@
 #ifndef __SCH_H__
 #define __SCH_H__
 
-#define MAX_TASK_NUM    5
+#ifndef NULL
+  #define NULL (void *)0
+#endif
+
+
+
+#define MAX_TASK_NUM    8
 #define SCH_TICK_PERIOD  2 /*Tick period time of scheduler,ms*/
 #define SYS_CLK          (24000000)/*System clock*/
 

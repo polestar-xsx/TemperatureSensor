@@ -185,7 +185,7 @@ void vSetReadTempSeq(void)
     astCmdSeq[7].u16Skiploops = 0;
 }
 
-void vStartCmdSeq(void)
+void vReadTemp(void)
 {
     boRunCmdSeq = 1;
 }

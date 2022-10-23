@@ -14,7 +14,7 @@ void v18b20ServiceTask(void);
 
 void vSetReadTempSeq(void);
 
-void vStartCmdSeq(void);
+void vReadTemp(void);
 
 
 

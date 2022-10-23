@@ -1,4 +1,3 @@
-#include"iic.h"
 #include"clk_sd3078.h"
 #include <string.h>
 
@@ -12,6 +11,8 @@ unsigned char __xdata au8WriteBuffer[8] = {0,};
 tstClock __xdata stSetClk = {0,};
 vIIC_OpDoneCallback * pCallbackTemp = 0;
 tenClkOp __xdata enCurrentOp = enOp_Idle;
+tstClock __xdata stClk = {0,};
+unsigned char boClockValid = 0;
 
 void vClk_ReadClk(tstClock * pstClk,vIIC_OpDoneCallback* pCallback)
 {
@@ -63,4 +64,27 @@ void vClk_SetClk(tstClock * pstClk,vIIC_OpDoneCallback* pCallback)
     memcpy(&stSetClk,pstClk,sizeof(tstClock));
     pCallbackTemp = pCallback;
     enCurrentOp = enOp_SetClk;
+}
+
+void vSetClkValid(void)
+{
+    boClockValid = 1;
+}
+
+unsigned char boGetClkValid(void)
+{
+    return boClockValid;
+}
+
+
+void vUpdateClk(void)
+{
+    vClk_ReadClk(&stClk,vSetClkValid);
+}
+
+
+void vInitClk(void)
+{
+    tstClock stClk = {0x50,0x19,0x96,0x05,0x30,0x07,0x22};
+    vClk_SetClk(&stClk,0);
 }
