@@ -8,8 +8,8 @@
 #define KEY4  P35
 #define KeyTaskPeriod  50
 #define Debounce_ShortPress  (100/KeyTaskPeriod) /*short press debouce time, 100ms/KeyTaskPeriod*/
-#define Debounce_LongPress   (2000/KeyTaskPeriod) /*long press debouce time, 2s/KeyTaskPeriod*/
-#define Debounce_ContinuePress  (500/KeyTaskPeriod) /*Continue press debounce time, 500ms/KeyTaskPeriod*/
+#define Debounce_LongPress   (1000/KeyTaskPeriod) /*long press debouce time, 2s/KeyTaskPeriod*/
+#define Debounce_ContinuePress  (100/KeyTaskPeriod) /*Continue press debounce time, 500ms/KeyTaskPeriod*/
 #define KeyBuffNum       3
 
 typedef enum

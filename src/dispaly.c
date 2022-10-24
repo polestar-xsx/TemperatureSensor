@@ -18,7 +18,7 @@ tenClkDisplayMode enClkDisMode = enClkDisMode_Time;
 
 unsigned char boDisplayOn = 1;
 
-
+tstClock stClkSetTemp;   //Temp clk date used fro setting
 
 void vDisplayOff(void)
 {
@@ -260,6 +260,7 @@ void vSleepHandler(tstKey *Key)
         switch(Key->enKeyValue)
         {
             case enKey_2:enMainDisMode = enDisMode_DisTemp;break;
+            case enKey_3:enMainDisMode = enDisMode_Counter;break;
             default:enMainDisMode = enDisMode_DisClk;vDisplayTime(&stClk);enClkDisMode = enClkDisMode_Time;break;
         }
     }
@@ -271,10 +272,17 @@ void vSleepHandler(tstKey *Key)
 
 void vClkDisHandler(tstKey *Key)
 {
-    //tstClock stClkTemp = {0x50,0x21,0x22,0x05,0x30,0x07,0x22};
     switch(Key->enKeyValue)
     {
         case enKey_1:enMainDisMode = enDisMode_DisTemp;break;
+        case enKey_12:enMainDisMode = enDisMode_Counter;break;
+        case enKey_13:
+            if(Key->enKeySts == enKeySts_LongPressed)
+            {
+                enMainDisMode = enDisMode_SetClk;
+                stClkSetTemp = stClk;
+            }
+            break;
         case enKey_2:vDisplayYear(&stClk);enClkDisMode = enClkDisMode_Year;break;
         case enKey_3:vDisplayDate(&stClk);enClkDisMode = enClkDisMode_Date;break;
         case enKey_4:vDisplayTime(&stClk);enClkDisMode = enClkDisMode_Time;break;
@@ -308,6 +316,105 @@ void vTempDisHandler(tstKey *Key)
     }
 }
 
+void vCounterHandler(tstKey *Key)
+{
+    static unsigned int u16Counter = 0;
+    switch(Key->enKeyValue)
+    {
+        case enKey_1:enMainDisMode = enDisMode_DisClk;break;
+        case enKey_2:
+            if(u16Counter > 0)u16Counter--;break;
+        case enKey_3:
+            if(++u16Counter > 9999)u16Counter = 0;break;
+        case enKey_4:
+            if(Key->enKeySts == enKeySts_LongPressed)u16Counter=0;break;
+        default:break; 
+    }
+    vDisplayDig(u16Counter,1);
+}
+
+void vSetClkHandler(tstKey *Key)
+{
+    unsigned char u8SetTemp = 0;
+    static unsigned char u8SetIndex = 0;
+    
+    switch(enClkDisMode)
+    {
+        case enClkDisMode_Time:
+            if(u8SetIndex == 0)
+            {
+                u8SetTemp = (stClkSetTemp.u8Min>>4)*10;
+                u8SetTemp += stClkSetTemp.u8Min&0x0f;
+            }
+            else
+            {
+                u8SetTemp = (stClkSetTemp.u8Hour>>4&0x07)*10;
+                u8SetTemp += stClkSetTemp.u8Hour&0x0f;
+            }
+            switch(Key->enKeyValue)
+            {
+                case enKey_1:break;
+                case enKey_2:
+                    if(u8SetIndex == 0)
+                    {
+                        if(--u8SetTemp > 60)u8SetTemp = 59;
+                        stClkSetTemp.u8Min = (u8SetTemp/10)<<4 | (u8SetTemp%10);
+                    }
+                    else
+                    {
+                        if(--u8SetTemp > 23)u8SetTemp = 23;
+                        stClkSetTemp.u8Hour = (u8SetTemp/10)<<4 | (u8SetTemp%10);
+                    }                  
+                    break;
+                case enKey_3:
+                    if(u8SetIndex == 0)
+                    {
+                        if(++u8SetTemp>59)u8SetTemp = 0;
+                        stClkSetTemp.u8Min = (u8SetTemp/10)<<4 | (u8SetTemp%10);
+                    }
+                    else
+                    {
+                        if(++u8SetTemp>23)u8SetTemp = 0;
+                        stClkSetTemp.u8Hour = (u8SetTemp/10)<<4 | (u8SetTemp%10);
+                    }     
+                    break;
+                case enKey_4:
+                    if(Key->enKeySts == enKeySts_ShortPressed)
+                    {
+                        if(u8SetIndex == 0)
+                        {
+                            u8SetIndex = 1;
+                        }
+                        else
+                        {
+                            vClk_SetClk(&stClkSetTemp,NULL);
+                            enMainDisMode = enDisMode_DisClk;
+                            u8SetIndex = 0;
+                        }
+                    }                    
+                    break;
+                default:break;
+            }
+            vDisplayTime(&stClkSetTemp);
+            if(u8SetIndex == 0)
+            {
+                SET_DIG_BLINK(3,enBlink_2HZ);
+                SET_DIG_BLINK(2,enBlink_2HZ);
+            }
+            else
+            {
+                SET_DIG_BLINK(1,enBlink_2HZ);
+                SET_DIG_BLINK(0,enBlink_2HZ);
+            }     
+            SET_DIG_BLINK(4,enBlink_ON); 
+            break;
+        case enClkDisMode_Year:break;
+        case enClkDisMode_Date:break;
+        default:break;
+    }
+
+}
+
 void vDisplayMainTask(void)
 {
     static unsigned int u16ActiveCnt = 0;
@@ -324,10 +431,13 @@ void vDisplayMainTask(void)
         case enDisMode_DisTemp:
             vTempDisHandler(&KeyTemp);
             break;
-        case enDisMode_SetClk:break;
+        case enDisMode_SetClk:
+            vSetClkHandler(&KeyTemp);
+            break;
         case enDisMode_Timer:break;
         case enDisMode_StopWatch:break;
-        case enDisMode_Counter:break;
+        case enDisMode_Counter:
+            vCounterHandler(&KeyTemp);break;
         default:break;
     }
     if(enMainDisMode != enDisMode_Sleep)
