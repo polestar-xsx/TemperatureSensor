@@ -292,6 +292,14 @@ void vClkDisHandler(tstKey *Key)
     {
         vDisplayTime(&stClk);
     }
+    else if(enClkDisMode == enClkDisMode_Date)
+    {
+        vDisplayDate(&stClk);
+    }
+    else if(enClkDisMode == enClkDisMode_Year)
+    {
+        vDisplayYear(&stClk);
+    }
 }
 
 void vTempDisHandler(tstKey *Key)
@@ -337,18 +345,20 @@ void vSetClkHandler(tstKey *Key)
 {
     unsigned char u8SetTemp = 0;
     static unsigned char u8SetIndex = 0;
-    
+    unsigned char u8MaxDayofMon = 30;
+    unsigned char u8MonthTemp = 0;//Temp month use to calc max day
+    unsigned char u8YearTemp = 0; //Used to calc max day
     switch(enClkDisMode)
     {
         case enClkDisMode_Time:
             if(u8SetIndex == 0)
             {
-                u8SetTemp = (stClkSetTemp.u8Min>>4)*10;
+                u8SetTemp = (stClkSetTemp.u8Min>>4)*10;  //BCD to int
                 u8SetTemp += stClkSetTemp.u8Min&0x0f;
             }
             else
             {
-                u8SetTemp = (stClkSetTemp.u8Hour>>4&0x07)*10;
+                u8SetTemp = (stClkSetTemp.u8Hour>>4&0x07)*10; //BCD to int
                 u8SetTemp += stClkSetTemp.u8Hour&0x0f;
             }
             switch(Key->enKeyValue)
@@ -387,6 +397,7 @@ void vSetClkHandler(tstKey *Key)
                         }
                         else
                         {
+                            stClkSetTemp.u8Hour = stClkSetTemp.u8Hour | 0x80;//24 hour format
                             vClk_SetClk(&stClkSetTemp,NULL);
                             enMainDisMode = enDisMode_DisClk;
                             u8SetIndex = 0;
@@ -408,8 +419,126 @@ void vSetClkHandler(tstKey *Key)
             }     
             SET_DIG_BLINK(4,enBlink_ON); 
             break;
-        case enClkDisMode_Year:break;
-        case enClkDisMode_Date:break;
+        case enClkDisMode_Year:
+            u8SetTemp = (stClkSetTemp.u8Year>>4)*10;  //BCD to int
+            u8SetTemp += stClkSetTemp.u8Year&0x0f;
+            switch(Key->enKeyValue)
+            {
+                case enKey_1:break;
+                case enKey_2:
+                    if(--u8SetTemp > 99)u8SetTemp = 99;
+                    stClkSetTemp.u8Year = (u8SetTemp/10)<<4 | (u8SetTemp%10);                
+                    break;
+                case enKey_3:
+                    if(++u8SetTemp>99)u8SetTemp = 0;
+                    stClkSetTemp.u8Year = (u8SetTemp/10)<<4 | (u8SetTemp%10);   
+                    break;
+                case enKey_4:
+                    if(Key->enKeySts == enKeySts_ShortPressed)
+                    {
+                        vClk_SetClk(&stClkSetTemp,NULL);
+                        enMainDisMode = enDisMode_DisClk;
+                    }                    
+                    break;
+                default:break;
+            }
+            vDisplayYear(&stClkSetTemp);
+            SET_DIG_BLINK(3,enBlink_2HZ);
+            SET_DIG_BLINK(2,enBlink_2HZ);   
+            SET_DIG_BLINK(4,enBlink_ON); 
+            break;
+        case enClkDisMode_Date:
+            if(u8SetIndex == 0)
+            {
+                u8SetTemp = (stClkSetTemp.u8Day>>4)*10;  //BCD to int
+                u8SetTemp += stClkSetTemp.u8Day&0x0f;
+                u8MonthTemp = (stClkSetTemp.u8Month>>4)*10; //BCD to int
+                u8MonthTemp += stClkSetTemp.u8Month&0x0f;
+                if(u8MonthTemp == 1 || u8MonthTemp == 3 || u8MonthTemp == 5 || u8MonthTemp == 7 || u8MonthTemp == 8\
+                    || u8MonthTemp == 10 || u8MonthTemp == 12)
+                {
+                    u8MaxDayofMon = 31;
+                }
+                else if(u8MonthTemp == 4 || u8MonthTemp == 6 || u8MonthTemp == 9 || u8MonthTemp == 11)
+                {
+                    u8MaxDayofMon = 30;
+                }
+                else
+                {
+                    u8YearTemp = (stClkSetTemp.u8Year>>4)*10;  //BCD to int
+                    u8YearTemp += stClkSetTemp.u8Year&0x0f;
+                    if((u8YearTemp%4 == 0 && u8YearTemp%100 != 0)||u8YearTemp%400 == 0)
+                    {
+                        u8MaxDayofMon = 29;
+                    }
+                    else
+                    {
+                        u8MaxDayofMon = 28;
+                    }
+                }
+            }
+            else
+            {
+                u8SetTemp = (stClkSetTemp.u8Month>>4)*10; //BCD to int
+                u8SetTemp += stClkSetTemp.u8Month&0x0f;
+            }
+            switch(Key->enKeyValue)
+            {
+                case enKey_1:break;
+                case enKey_2:
+                    if(u8SetIndex == 0)
+                    {
+                        if(--u8SetTemp > u8MaxDayofMon)u8SetTemp = u8MaxDayofMon;
+                        stClkSetTemp.u8Day = (u8SetTemp/10)<<4 | (u8SetTemp%10);
+                    }
+                    else
+                    {
+                        if(--u8SetTemp > 12)u8SetTemp = 12;
+                        stClkSetTemp.u8Month = (u8SetTemp/10)<<4 | (u8SetTemp%10);
+                    }                  
+                    break;
+                case enKey_3:
+                    if(u8SetIndex == 0)
+                    {
+                        if(++u8SetTemp>u8MaxDayofMon)u8SetTemp = 0;
+                        stClkSetTemp.u8Day = (u8SetTemp/10)<<4 | (u8SetTemp%10);
+                    }
+                    else
+                    {
+                        if(++u8SetTemp>12)u8SetTemp = 0;
+                        stClkSetTemp.u8Month = (u8SetTemp/10)<<4 | (u8SetTemp%10);
+                    }     
+                    break;
+                case enKey_4:
+                    if(Key->enKeySts == enKeySts_ShortPressed)
+                    {
+                        if(u8SetIndex == 0)
+                        {
+                            u8SetIndex = 1;
+                        }
+                        else
+                        {
+                            vClk_SetClk(&stClkSetTemp,NULL);
+                            enMainDisMode = enDisMode_DisClk;
+                            u8SetIndex = 0;
+                        }
+                    }                    
+                    break;
+                default:break;
+            }
+            vDisplayDate(&stClkSetTemp);
+            if(u8SetIndex == 0)
+            {
+                SET_DIG_BLINK(3,enBlink_2HZ);
+                SET_DIG_BLINK(2,enBlink_2HZ);
+            }
+            else
+            {
+                SET_DIG_BLINK(1,enBlink_2HZ);
+                SET_DIG_BLINK(0,enBlink_2HZ);
+            }     
+            SET_DIG_BLINK(4,enBlink_ON); 
+            break;
         default:break;
     }
 
