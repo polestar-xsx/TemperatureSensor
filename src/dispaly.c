@@ -1,5 +1,12 @@
 #include "display.h"
 #define SET_DIG_BLINK(i,blink)      {stDisBuffer[i].enBlkFreq = blink;}
+#define RED_ON()                    {P20 = 0;}
+#define RED_OFF()                   {P20 = 1;}
+#define GREEN_ON()                  {P21 = 0;}
+#define GREEN_OFF()                 {P21 = 1;}
+#define BLUE_ON()                   {P22 = 0;}
+#define BLUE_OFF()                  {P22 = 1;}
+
 typedef struct
 {
     tenBlinkFreq enBlkFreq;
@@ -18,7 +25,16 @@ tenClkDisplayMode enClkDisMode = enClkDisMode_Time;
 
 unsigned char boDisplayOn = 1;
 
+unsigned char boUnsleep = 0;
+
 tstClock stClkSetTemp;   //Temp clk date used fro setting
+
+void INT0_Isr() __interrupt (0)
+{
+    enMainDisMode = enDisMode_DisTemp;                                 //enter display clock mode
+    //enClkDisMode = enClkDisMode_Time;                                 //enter display time mode
+    EX0 = 0;
+}
 
 void vDisplayOff(void)
 {
@@ -142,20 +158,26 @@ void vDisplayTemp(unsigned int i16value, unsigned char boPositive)
     }
 }
 
-
-
-void vDisplayInit(void)
+void vDisplayClearBuffer(void)
 {
     unsigned char i = 0;
-    enMainDisMode = enDisMode_DisClk;
-    vDisplayTime(&stClk);
-    vDisplayOn();
     for(i=0;i<5;i++)
     {
         stDisBuffer[i].enBlkFreq = enBlink_OFF;
         stDisBuffer[i].u8Code = 0xff;
     }
 }
+
+void vDisplayInit(void)
+{
+    
+    enMainDisMode = enDisMode_DisClk;
+    vDisplayTime(&stClk);
+    vDisplayOn();
+    vDisplayClearBuffer();
+}
+
+
 
 void vDisplayFresh(void)
 {
@@ -255,19 +277,12 @@ void vDisplayFresh(void)
 
 void vSleepHandler(tstKey *Key)
 {
-    if(Key->enKeyValue != enKey_Null)
-    {
-        switch(Key->enKeyValue)
-        {
-            case enKey_2:enMainDisMode = enDisMode_DisTemp;break;
-            case enKey_3:enMainDisMode = enDisMode_Counter;break;
-            default:enMainDisMode = enDisMode_DisClk;vDisplayTime(&stClk);enClkDisMode = enClkDisMode_Time;break;
-        }
-    }
-    else
-    {
-
-    }
+    BLUE_OFF();
+    RED_OFF();
+    GREEN_OFF();
+    vDisplayClearBuffer();
+    EX0 = 1; //enable INT0 interrupt
+    PCON = 0x02;            //MCU sleep
 }
 
 void vClkDisHandler(tstKey *Key)
@@ -286,6 +301,16 @@ void vClkDisHandler(tstKey *Key)
         case enKey_2:vDisplayYear(&stClk);enClkDisMode = enClkDisMode_Year;break;
         case enKey_3:vDisplayDate(&stClk);enClkDisMode = enClkDisMode_Date;break;
         case enKey_4:vDisplayTime(&stClk);enClkDisMode = enClkDisMode_Time;break;
+        case enKey1234:
+            if(boUnsleep != 0)
+            {
+                boUnsleep = 0;
+            }
+            else
+            {
+                boUnsleep = 1;
+            }
+            break;
         default:break; 
     }
     if(enClkDisMode == enClkDisMode_Time)
@@ -320,6 +345,16 @@ void vTempDisHandler(tstKey *Key)
     switch(Key->enKeyValue)
     {
         case enKey_4:enMainDisMode = enDisMode_DisClk;vDisplayTime(&stClk);enClkDisMode = enClkDisMode_Time;break;
+        case enKey1234:
+            if(boUnsleep != 0)
+            {
+                boUnsleep = 0;
+            }
+            else
+            {
+                boUnsleep = 1;
+            }
+            break;
         default:break; 
     }
 }
@@ -336,6 +371,16 @@ void vCounterHandler(tstKey *Key)
             if(++u16Counter > 9999)u16Counter = 0;break;
         case enKey_4:
             if(Key->enKeySts == enKeySts_LongPressed)u16Counter=0;break;
+        case enKey1234:
+            if(boUnsleep != 0)
+            {
+                boUnsleep = 0;
+            }
+            else
+            {
+                boUnsleep = 1;
+            }
+            break;
         default:break; 
     }
     vDisplayDig(u16Counter,1);
@@ -556,12 +601,14 @@ void vDisplayMainTask(void)
             break;
         case enDisMode_DisClk:
             vClkDisHandler(&KeyTemp);
+            GREEN_OFF();
             break;
         case enDisMode_DisTemp:
             vTempDisHandler(&KeyTemp);
             break;
         case enDisMode_SetClk:
             vSetClkHandler(&KeyTemp);
+            GREEN_ON();
             break;
         case enDisMode_Timer:break;
         case enDisMode_StopWatch:break;
@@ -569,9 +616,17 @@ void vDisplayMainTask(void)
             vCounterHandler(&KeyTemp);break;
         default:break;
     }
+    if(boUnsleep)
+    {        
+        BLUE_ON();
+    }
+    else
+    {
+        BLUE_OFF();
+    }
     if(enMainDisMode != enDisMode_Sleep)
     {
-        if(KeyTemp.enKeyValue != enKey_Null)
+        if(KeyTemp.enKeyValue != enKey_Null || boUnsleep)
         {
             u16ActiveCnt = 0;
         }

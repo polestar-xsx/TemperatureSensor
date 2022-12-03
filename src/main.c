@@ -22,6 +22,7 @@ void vIOInit(void)
     DE3 = 0x00;
     DE4 = 0x00;
     DIG = 0xff;
+    IT0 = 1;  //INT0下降沿中断
 }
 
 void vT0Init(unsigned int u16TaskPeriod)
@@ -40,7 +41,6 @@ void main()
     KeyInit();
     vDisplayInit();
     boAddTask(vDisplayFresh,DIS_FRESH_TASK_PERIOD,3);
-    //boAddTask(vGetKey,20,5);
     boAddTask(vReadTemp,3000,8);
     boAddTask(vUpdateClk,1000,15);
     boAddTask(v18b20ServiceTask,1,6);
@@ -49,7 +49,6 @@ void main()
     
     vT0Init(SCH_TICK_PERIOD);
     vIIC_Init();
-    //vInitClk();
     vStartSch();
     while (1)
     {

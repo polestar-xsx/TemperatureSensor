@@ -61,4 +61,6 @@ void vDisplayMainTask(void);
 
 void vDisplayInit(void);
 
+void INT0_Isr() __interrupt (0);
+
 #endif /* __DISPLAY_H__ */
